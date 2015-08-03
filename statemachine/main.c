@@ -8,12 +8,11 @@ typedef struct Exit Exit;
 typedef uint8_t (*Color_fn)(uint8_t counter);
 typedef uint8_t (*Condition)(uint8_t counter, uint8_t parameter);
 
-
-// TODO: Find out a way to do exit conditions
+// TODO: Find out a way to do multiple exit conditions
 struct State {
 	uint8_t counter;
 	Color_fn red, green, blue;
-	uint8_t max;
+	uint8_t hold, max;
 	State *nextState;
 	Exit *exit;
 };
@@ -53,7 +52,7 @@ State *nextFrame(State *st) {
 	if(st->counter >= st->max) {
 		st->counter = 0;
 		st = st->nextState;
-	} else if(checkButton(st->exit->byte, st->exit->mask)) {
+	} else if(st->counter >= st->hold && checkButton(st->exit->byte, st->exit->mask)) {
 		printf("B pressed!\n");
 		st->counter = 0;
 		st = st->exit->exitState;
@@ -70,6 +69,12 @@ Color getColor(State *st) {
 	return col;
 }
 
+void printState(State *st) {
+	Color col = getColor(st);
+	printf("counter: %u\tred: %u\t green: %u\tblue: %u\n", st->counter, col.red, col.green, col.blue);
+}
+
+
 
 State idleState;
 State shineState;
@@ -79,8 +84,8 @@ int main(int arc, char **argv)
 {
 	printf("Entering main\n");
 
-	idleState = {0, linear, zero, zero, 2, &idleState, &shineExit};
-	shineState = {0, zero, zero, max, 5, &idleState, &shineExit};
+	idleState = {0, linear, zero, zero, 0, 2, &idleState, &shineExit};
+	shineState = {0, zero, zero, max, 2, 5, &idleState, &shineExit};
 	shineExit = {1, 0b00000010, &shineState};
 
 	State *curState = &idleState;
@@ -88,23 +93,28 @@ int main(int arc, char **argv)
 	// Progress through ten idle frames
 	int i;
 	for(i = 0; i < 10; i++) {
-		Color col = getColor(curState);
-		printf("counter: %u\tred: %u\t green: %u\tblue: %u\n", curState->counter, col.red, col.green, col.blue);
 		curState = nextFrame(curState);
+		printState(curState);
 	}
 
-	// Shine for one frame
+	// Shine for three framess
 	buttonBuffer[1] = 0b00000010;
 	curState = nextFrame(curState);
+	printState(curState);
+	curState = nextFrame(curState);
+	printState(curState);
+	curState = nextFrame(curState);
+	printState(curState);
+	curState = nextFrame(curState);
+	printState(curState);
+	curState = nextFrame(curState);
+	printState(curState);
 	buttonBuffer[1] = 0b00000000;
-	Color col = getColor(curState);
-	printf("counter: %u\tred: %u\t green: %u\tblue: %u\n", curState->counter, col.red, col.green, col.blue);
 
 	// Wait ten more frames
 	for(i = 0; i < 10; i++) {
-		Color col = getColor(curState);
-		printf("counter: %u\tred: %u\t green: %u\tblue: %u\n", curState->counter, col.red, col.green, col.blue);
 		curState = nextFrame(curState);
+		printState(curState);
 	}
 
 	return 0;
