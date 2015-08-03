@@ -6,11 +6,10 @@ typedef struct State State;
 typedef struct Exit Exit;
 
 typedef uint8_t (*Color_fn)(uint8_t counter);
-typedef uint8_t (*Condition)(uint8_t counter, uint8_t parameter);
+//typedef uint8_t (*Condition)(uint8_t counter, uint8_t parameter);
 
 // TODO: Find out a way to do multiple exit conditions
 struct State {
-	uint8_t counter;
 	Color_fn red, green, blue;
 	uint8_t hold, max;
 	State *nextState;
@@ -48,73 +47,75 @@ uint8_t checkButton(uint8_t byte, uint8_t mask) {
 }
 
 // TODO: Add exit condition processing
-State *nextFrame(State *st) {
-	if(st->counter >= st->max) {
-		st->counter = 0;
-		st = st->nextState;
-	} else if(st->counter >= st->hold && checkButton(st->exit->byte, st->exit->mask)) {
+State *nextFrame(State *st, uint8_t* counter) {
+	if(*counter >= st->max) {
+		*counter = 0;
+		return st->nextState;
+	} else if(*counter >= st->hold && checkButton(st->exit->byte, st->exit->mask)) {
 		printf("B pressed!\n");
-		st->counter = 0;
-		st = st->exit->exitState;
+		*counter = 0;
+		return st->exit->exitState;
 	} else {
-		st->counter++;
+		*counter = *counter + 1;
+		return st;
 	}
 }
 
-Color getColor(State *st) {
-	uint8_t red = st->red(st->counter);
-	uint8_t green = st->green(st->counter);
-	uint8_t blue = st->blue(st->counter);
+Color getColor(State *st, uint8_t counter) {
+	uint8_t red = st->red(counter);
+	uint8_t green = st->green(counter);
+	uint8_t blue = st->blue(counter);
 	Color col = {red, green, blue};
 	return col;
 }
 
-void printState(State *st) {
-	Color col = getColor(st);
-	printf("counter: %u\tred: %u\t green: %u\tblue: %u\n", st->counter, col.red, col.green, col.blue);
+void printState(State *st, uint8_t counter) {
+	Color col = getColor(st, counter);
+	printf("counter: %u\tred: %u\t green: %u\tblue: %u\n", counter, col.red, col.green, col.blue);
 }
-
-
 
 State idleState;
 State shineState;
 Exit shineExit;
 
+uint8_t counter;
+
 int main(int arc, char **argv)
 {
-	printf("Entering main\n");
-
-	idleState = {0, linear, zero, zero, 0, 2, &idleState, &shineExit};
-	shineState = {0, zero, zero, max, 2, 5, &idleState, &shineExit};
+	idleState = {&linear, &zero, &zero, 0, 10, &idleState, &shineExit};
+	shineState = {&zero, &zero, &max, 2, 5, &idleState, &shineExit};
 	shineExit = {1, 0b00000010, &shineState};
 
+	printf("Entering main\n");
+
 	State *curState = &idleState;
+	counter = 0;
 
 	// Progress through ten idle frames
 	int i;
 	for(i = 0; i < 10; i++) {
-		curState = nextFrame(curState);
-		printState(curState);
+		curState = nextFrame(curState, &counter);
+		printState(curState, counter);
 	}
 
-	// Shine for three framess
+	// Shine for five frames to test hold
 	buttonBuffer[1] = 0b00000010;
-	curState = nextFrame(curState);
-	printState(curState);
-	curState = nextFrame(curState);
-	printState(curState);
-	curState = nextFrame(curState);
-	printState(curState);
-	curState = nextFrame(curState);
-	printState(curState);
-	curState = nextFrame(curState);
-	printState(curState);
+	curState = nextFrame(curState, &counter);
+	printState(curState, counter);
+	curState = nextFrame(curState, &counter);
+	printState(curState, counter);
+	curState = nextFrame(curState, &counter);
+	printState(curState, counter);
+	curState = nextFrame(curState, &counter);
+	printState(curState, counter);
+	curState = nextFrame(curState, &counter);
+	printState(curState, counter);
 	buttonBuffer[1] = 0b00000000;
 
 	// Wait ten more frames
 	for(i = 0; i < 10; i++) {
-		curState = nextFrame(curState);
-		printState(curState);
+		curState = nextFrame(curState, &counter);
+		printState(curState, counter);
 	}
 
 	return 0;
