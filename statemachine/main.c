@@ -16,7 +16,7 @@ struct State {
 
 struct Exit {
 	uint16_t digitalMask;
-	uint8_t dStick, cStick;
+	uint8_t stick;
 };
 
 struct Color {
@@ -48,10 +48,10 @@ static const State stateLookup[] = {
 
 static const Exit exitLookup[] = {
 	{
-		0, 0, 0
+		0, 0
 	}, {
 		0b0000000000000010,
-		0, 0
+		0
 	}
 };
 
@@ -59,7 +59,7 @@ Color_fn colorLookup[] = {&zero, &linear, &max};
 
 
 // Button checks
-uint8_t checkExit(uint8_t exit, uint16_t buttons, uint8_t dStick, uint8_t cStick) {
+uint8_t checkExit(uint8_t exit, uint16_t buttons, uint8_t stick) {
 	//printf("%i\n", buttons);
 	if(buttons & exitLookup[exit].digitalMask) 
 		return 1;
@@ -68,7 +68,7 @@ uint8_t checkExit(uint8_t exit, uint16_t buttons, uint8_t dStick, uint8_t cStick
 }
 
 // Processes the next frame, given the current controller state
-uint8_t nextFrame(uint8_t st, uint8_t* counter, uint16_t buttons, uint8_t dStick, uint8_t cStick) {
+uint8_t nextFrame(uint8_t st, uint8_t* counter, uint16_t buttons, uint8_t stick) {
 	// Check states exit conditions
 	if(*counter >= stateLookup[st].hold) {
 		// Loop through eight possible exits
@@ -80,7 +80,7 @@ uint8_t nextFrame(uint8_t st, uint8_t* counter, uint16_t buttons, uint8_t dStick
 				break;
 
 			// Check if the given exit has its conditions met
-			if(checkExit(exit, buttons, dStick, cStick)) {
+			if(checkExit(exit, buttons, stick)) {
 				*counter = 0;
 				return exit;
 			}
@@ -126,25 +126,25 @@ int main(int arc, char **argv)
 	// Progress through ten idle frames
 	int i;
 	for(i = 0; i < 10; i++) {
-		st = nextFrame(st, &counter, 0, 0, 0);
+		st = nextFrame(st, &counter, 0, 0);
 		printState(st, counter);
 	}
 
 	// Shine for five frames to test hold
-	st = nextFrame(st, &counter, 0xFFFF, 0, 0);
+	st = nextFrame(st, &counter, 0xFFFF, 0);
 	printState(st, counter);
-	st = nextFrame(st, &counter, 0, 0, 0);
+	st = nextFrame(st, &counter, 0, 0);
 	printState(st, counter);
-	st = nextFrame(st, &counter, 0, 0, 0);
+	st = nextFrame(st, &counter, 0, 0);
 	printState(st, counter);
-	st = nextFrame(st, &counter, 0, 0, 0);
+	st = nextFrame(st, &counter, 0, 0);
 	printState(st, counter);
-	st = nextFrame(st, &counter, 0, 0, 0);
+	st = nextFrame(st, &counter, 0, 0);
 	printState(st, counter);
 
 	// Wait ten more frames
 	for(i = 0; i < 10; i++) {
-		st = nextFrame(st, &counter, 0, 0, 0);
+		st = nextFrame(st, &counter, 0, 0);
 		printState(st, counter);
 	}
 
