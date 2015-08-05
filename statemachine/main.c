@@ -7,6 +7,13 @@ typedef struct Exit Exit;
 
 typedef uint8_t (*Color_fn)(uint8_t counter);
 
+enum STICK_POSITIONS {
+	UP,
+	RIGHT,
+	DOWN,
+	LEFT
+};
+
 struct State {
 	uint8_t red, green, blue;
 	uint8_t hold, max;
@@ -47,12 +54,8 @@ static const State stateLookup[] = {
 };
 
 static const Exit exitLookup[] = {
-	{
-		0, 0
-	}, {
-		0b0000000000000010,
-		0
-	}
+	{ 0,	0 },
+	{ 0b0000000000000010,	0b00000100 }
 };
 
 Color_fn colorLookup[] = {&zero, &linear, &max};
@@ -60,11 +63,18 @@ Color_fn colorLookup[] = {&zero, &linear, &max};
 
 // Button checks
 uint8_t checkExit(uint8_t exit, uint16_t buttons, uint8_t stick) {
-	//printf("%i\n", buttons);
-	if(buttons & exitLookup[exit].digitalMask) 
+	// If the C-Stick is in the correct position
+	if(stick & 0xf0)
 		return 1;
-	else
-		return 0;
+
+	Exit ex = exitLookup[exit];
+	// If the D-Stick is correctly in neutral, or in the correct direction
+	if(!(ex.stick & 0x0f) & !(stick & 0x0f) || (ex.stick & stick & 0x0f))
+		// And the correct button is pressed
+		if(buttons & ex.digitalMask) 
+			return 1;
+
+	return 0;
 }
 
 // Processes the next frame, given the current controller state
@@ -131,16 +141,10 @@ int main(int arc, char **argv)
 	}
 
 	// Shine for five frames to test hold
-	st = nextFrame(st, &counter, 0xFFFF, 0);
-	printState(st, counter);
-	st = nextFrame(st, &counter, 0, 0);
-	printState(st, counter);
-	st = nextFrame(st, &counter, 0, 0);
-	printState(st, counter);
-	st = nextFrame(st, &counter, 0, 0);
-	printState(st, counter);
-	st = nextFrame(st, &counter, 0, 0);
-	printState(st, counter);
+	for(i = 0; i < 10; i++) {
+		st = nextFrame(st, &counter, 0xFFFF, 0x04);
+		printState(st, counter);
+	}
 
 	// Wait ten more frames
 	for(i = 0; i < 10; i++) {
