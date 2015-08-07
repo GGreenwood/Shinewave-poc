@@ -41,6 +41,8 @@ uint8_t max(uint8_t counter) {
 	return 255;
 }
 
+static const uint8_t NUM_STATES = 2;
+
 static const State stateLookup[] = {
 	{	// Idle
 		1,	1,	1,
@@ -57,6 +59,8 @@ static const Exit exitLookup[] = {
 	{ 0,	0 },
 	{ 0b0000000000000010,	0b00000100 }
 };
+
+static const uint8_t NUM_COLORS = 3;
 
 Color_fn colorLookup[] = {&zero, &linear, &max};
 
@@ -89,6 +93,12 @@ uint8_t nextFrame(uint8_t st, uint8_t* counter, uint16_t buttons, uint8_t stick)
 			if(exit == 0) 
 				break;
 
+			// Check that the state exists
+			if(exit >= NUM_STATES) {
+				*counter = 0;
+				return 0;
+			}
+
 			// Check if the given exit has its conditions met
 			if(checkExit(exit, buttons, stick)) {
 				*counter = 0;
@@ -110,10 +120,19 @@ uint8_t nextFrame(uint8_t st, uint8_t* counter, uint16_t buttons, uint8_t stick)
 
 // Gets a color from current state and counter value
 Color getColor(uint8_t st, uint8_t counter) {
+	// Look up the current state's color function ID's
+	uint8_t redLookup = stateLookup[st].red;
+	uint8_t greenLookup = stateLookup[st].green;
+	uint8_t blueLookup = stateLookup[st].blue;
+
+	// Check that the function exists
+	if(redLookup >= NUM_COLORS || greenLookup >= NUM_COLORS || blueLookup >= NUM_COLORS)
+		return {0, 0, 0};
+
 	// Lookup the current state and color function ID, then call it with counter as a parameter
-	uint8_t red = colorLookup[stateLookup[st].red](counter);
-	uint8_t green = colorLookup[stateLookup[st].green](counter);
-	uint8_t blue = colorLookup[stateLookup[st].blue](counter);
+	uint8_t red = colorLookup[redLookup](counter);
+	uint8_t green = colorLookup[greenLookup](counter);
+	uint8_t blue = colorLookup[blueLookup](counter);
 	Color col = {red, green, blue};
 	return col;
 }
